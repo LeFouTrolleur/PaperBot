@@ -2,9 +2,7 @@ package fr.lefoutrolleur.utils.ErrorHandler;
 
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.requests.ErrorResponse;
-import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,7 +11,7 @@ public class ErrorHandler_FR {
 
 
 
-    public static ErrorHandler handle(CommandSender sender, DefaultErrorResponse... errorResponses){
+    public static ErrorHandler handle(CommandSender sender, ErrorReponses... errorResponses){
         if(sender == null) return ignoreAll();
         ErrorHandler rep = new ErrorHandler();
         Arrays.stream(errorResponses).forEach(i -> {
@@ -24,12 +22,12 @@ public class ErrorHandler_FR {
     public static ErrorHandler handleAll(CommandSender sender){
         if(sender == null) return ignoreAll();
         ErrorHandler rep = new ErrorHandler();
-        for (ErrorHandler_FR.DefaultErrorResponse er : ErrorHandler_FR.DefaultErrorResponse.values()) {
+        for (ErrorReponses er : ErrorReponses.values()) {
             rep.handle(er.getErrorResponse(), m -> sender.sendMessage(er.getMessage()));
         }
         return rep;
     }
-    public static ErrorHandler ignore(DefaultErrorResponse... responses){
+    public static ErrorHandler ignore(ErrorReponses... responses){
         ErrorHandler rep = new ErrorHandler();
         Arrays.stream(responses).forEach(i -> {
             rep.ignore(i.getErrorResponse());
@@ -38,23 +36,23 @@ public class ErrorHandler_FR {
     }
     public static ErrorHandler ignoreAll(){
         ErrorHandler rep = new ErrorHandler();
-        Arrays.stream(DefaultErrorResponse.values()).forEach(i -> rep.ignore(i.getErrorResponse()));
+        Arrays.stream(ErrorReponses.values()).forEach(i -> rep.ignore(i.getErrorResponse()));
         return rep;
     }
-    public static ErrorHandler handleAllButIgnore(CommandSender sender, Collection<ErrorHandler_FR.DefaultErrorResponse> handled, Collection<ErrorHandler_FR.DefaultErrorResponse> ignored){
+    public static ErrorHandler handleAllButIgnore(CommandSender sender, Collection<ErrorReponses> handled, Collection<ErrorReponses> ignored){
         if(sender == null) return ignoreAll();
         ErrorHandler rep = new ErrorHandler();
-            for (ErrorHandler_FR.DefaultErrorResponse er : ErrorHandler_FR.DefaultErrorResponse.values()){
+            for (ErrorReponses er : ErrorReponses.values()){
                 if(ignored.contains(er)){
                     rep.ignore(er.getErrorResponse());
                 } else rep.handle(er.getErrorResponse(), m -> sender.sendMessage(er.getMessage()));
         }
         return rep;
     }
-    public static ErrorHandler ignoreAllButHandle(CommandSender sender, Collection<ErrorHandler_FR.DefaultErrorResponse> ignored, Collection<ErrorHandler_FR.DefaultErrorResponse> handled){
+    public static ErrorHandler ignoreAllButHandle(CommandSender sender, Collection<ErrorReponses> ignored, Collection<ErrorReponses> handled){
         if(sender == null) return ignoreAll();
         ErrorHandler rep = new ErrorHandler();
-        for (ErrorHandler_FR.DefaultErrorResponse er : ErrorHandler_FR.DefaultErrorResponse.values()){
+        for (ErrorReponses er : ErrorReponses.values()){
             if(ignored.contains(er)){
                 rep.ignore(er.getErrorResponse());
             } else rep.handle(er.getErrorResponse(), m -> sender.sendMessage(er.getMessage()));
@@ -62,7 +60,7 @@ public class ErrorHandler_FR {
         return rep;
     }
 
-    public enum DefaultErrorResponse {
+    public enum ErrorReponses {
         USER_NOT_CONNECTED(ErrorResponse.USER_NOT_CONNECTED,"L'utilisateur n'est pas connecté!"),
         SERVER_ERROR(ErrorResponse.SERVER_ERROR,"Une erreur interne au serveur de Discord s'est produite!"),
         EMPTY_MESSAGE(ErrorResponse.EMPTY_MESSAGE,"Le message est vide!"),
@@ -73,7 +71,7 @@ public class ErrorHandler_FR {
 
         private final ErrorResponse response;
         private final String message;
-        DefaultErrorResponse(ErrorResponse e, String m) {
+        ErrorReponses(ErrorResponse e, String m) {
             response = e;
             message = m;
         }
