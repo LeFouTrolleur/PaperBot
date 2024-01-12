@@ -1,4 +1,4 @@
-package fr.lefoutrolleur.utils.ErrorHandler;
+package github.lefoutrolleur.paperbot.ErrorHandler;
 
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.requests.ErrorResponse;

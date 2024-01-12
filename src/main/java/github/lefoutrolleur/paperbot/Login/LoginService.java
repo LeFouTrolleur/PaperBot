@@ -1,4 +1,4 @@
-package fr.lefoutrolleur.utils.Login;
+package github.lefoutrolleur.paperbot.Login;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
