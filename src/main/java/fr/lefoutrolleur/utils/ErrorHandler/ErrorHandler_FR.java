@@ -36,11 +36,7 @@ public class ErrorHandler_FR {
     }
     public static ErrorHandler ignoreAll(){
         ErrorHandler rep = new ErrorHandler();
-        Arrays.stream(ErrorResponse.values()).forEach(i -> {
-            for (ErrorHandler_FR.DefaultErrorResponse er : ErrorHandler_FR.DefaultErrorResponse.values()){
-                if(er.getErrorResponse() == i) rep.ignore(er.getErrorResponse());
-            }
-        });
+        Arrays.stream(DefaultErrorResponse.values()).forEach(i -> rep.ignore(i.getErrorResponse()));
         return rep;
     }
     public static ErrorHandler handleAllButIgnore(Player player, Collection<ErrorHandler_FR.DefaultErrorResponse> handled, Collection<ErrorHandler_FR.DefaultErrorResponse> ignored){
@@ -50,7 +46,7 @@ public class ErrorHandler_FR {
                 if(ignored.contains(er)){
                     rep.ignore(er.getErrorResponse());
                 } else rep.handle(er.getErrorResponse(), m -> player.sendMessage(er.getMessage()));
-        };
+        }
         return rep;
     }
     public static ErrorHandler ignoreAllButHandle(Player player, Collection<ErrorHandler_FR.DefaultErrorResponse> ignored, Collection<ErrorHandler_FR.DefaultErrorResponse> handled){
@@ -60,7 +56,7 @@ public class ErrorHandler_FR {
             if(ignored.contains(er)){
                 rep.ignore(er.getErrorResponse());
             } else rep.handle(er.getErrorResponse(), m -> player.sendMessage(er.getMessage()));
-        };
+        }
         return rep;
     }
 
