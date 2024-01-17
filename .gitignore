@@ -1,9 +1,1 @@
-Desktop.ini
-$RECYCLE.BIN/
-ChangeLog.txt
-*.iml
-.idea/
-target/
-repo/
-out/
-META-INF/
+/.idea/
