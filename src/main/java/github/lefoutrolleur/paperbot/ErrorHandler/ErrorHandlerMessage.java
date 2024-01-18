@@ -15,9 +15,7 @@ public class ErrorHandlerMessage {
     public static ErrorHandler handle(CommandSender sender, ErrorResponse... errorResponses){
         if(sender == null) return null;
         ErrorHandler rep = new ErrorHandler();
-        Arrays.stream(errorResponses).forEach(i -> {
-            rep.handle(i, m -> sender.sendMessage(getMessageByErrorResponse(i)));
-        });
+        Arrays.stream(errorResponses).forEach(i -> rep.handle(i, m -> sender.sendMessage(getMessageByErrorResponse(i))));
         return rep;
     }
     public static ErrorHandler handleAll(CommandSender sender){
