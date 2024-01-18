@@ -1,3 +1,4 @@
 [![CodeFactor](https://www.codefactor.io/repository/github/lefoutrolleur/paperbot-implementation/badge)](https://www.codefactor.io/repository/github/lefoutrolleur/paperbot-implementation)
+# PaperBot - Implementation
 
-Currently in progress. Come back later!
+Check back later!²
