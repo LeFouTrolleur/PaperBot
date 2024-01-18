@@ -11,7 +11,18 @@ import java.util.Collection;
 public class ErrorHandlerMessage {
 
 
+    /**
+     * Default Lang: English
+     */
+    private static Lang lang = Lang.ENGLISH;
 
+    /**
+     * Set the langage for all messages
+     * @param language
+     */
+    public static void setLanguages(Lang language){
+        lang = language;
+    }
     public static ErrorHandler handle(CommandSender sender, ErrorResponse... errorResponses){
         if(sender == null) return null;
         ErrorHandler rep = new ErrorHandler();
@@ -44,7 +55,7 @@ public class ErrorHandlerMessage {
         return rep;
     }
     private static String getMessageByErrorResponse(ErrorResponse errorResponse){
-        String fieldName = errorResponse.name();
+        String fieldName = lang.prefix + "_" + errorResponse.name();
         try {
             Field field = ErrorMessage.class.getDeclaredField(fieldName);
             ErrorMessage value = (ErrorMessage) field.get(null);
@@ -54,22 +65,34 @@ public class ErrorHandlerMessage {
         }
     }
 
+    public static Lang getLang() {
+        return lang;
+    }
 
     public enum ErrorMessage{
-        USER_NOT_CONNECTED("L'utilisateur n'est pas connecté!"),
-        SERVER_ERROR("Une erreur interne au serveur de Discord s'est produite!"),
-        EMPTY_MESSAGE("Le message est vide!"),
-        CANNOT_SEND_TO_USER("Le bot n'arrive pas envoyer de message à l'utilisateur!"),
-        EMBED_DISABLED("Ce serveur a désactivé les Embeds!"),
-        UNKNOWN_WEBHOOK("Ce Webhook n'existe pas!"),
-        UNKNOWN_ACCOUNT("Ce compte n'existe pas!");
+        FR_USER_NOT_CONNECTED("L'utilisateur n'est pas connecté!"),
+        FR_SERVER_ERROR("Une erreur interne au serveur de Discord s'est produite!"),
+        FR_EMPTY_MESSAGE("Le message est vide!"),
+        FR_CANNOT_SEND_TO_USER("Le bot n'arrive pas envoyer de message à l'utilisateur!"),
+        FR_EMBED_DISABLED("Ce serveur a désactivé les Embeds!"),
+        FR_UNKNOWN_WEBHOOK("Ce Webhook n'existe pas!"),
+        FR_UNKNOWN_ACCOUNT("Ce compte n'existe pas!");
 
         private final String message;
         ErrorMessage(String m) {
             message = m;
         }
-        public String getMessage(){
-            return message;
     }
+    public enum Lang {
+        ENGLISH("EN"),
+        FRENCH("FR"),
+        DEUTSCH("DE"),
+        SPANISH("ES");
+
+        private final String prefix;
+        Lang(String prefix){
+            this.prefix = prefix;
+        }
+
     }
 }
