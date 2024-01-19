@@ -3,9 +3,10 @@ package github.lefoutrolleur.paperbot.Login;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.requests.restaction.RoleAction;
-import org.bukkit.OfflinePlayer;
+import net.kyori.adventure.audience.Audience;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
@@ -14,57 +15,40 @@ import java.util.*;
 /**
  * The type Login manager.
  */
-public class LoginService implements IDataService{
+public class LoginService<K extends ISnowflake,V extends Audience>{
 
-    private static String fileName = "login.yaml";
-    private static Guild guild;
-    private static String path;
-    private static Map<String, String> data = new HashMap<>();
-    private static JDA jda;
+    private final Guild guild;
+    private String path;
+    private Map<String, V> data = new HashMap<>();
+    private final JDA jda;
+    private final Plugin plugin;
+    private final File file;
 
-    private static final List<UUID> deletableUsers = new ArrayList<>();
-    private static final Map<String, UUID> connectionCodes = new HashMap<>();
-    /**
-     * The Instance.
-     */
-    static LoginService instance = new LoginService();
-
-    /**
-     * Gets instance.
-     *
-     * @return the instance
-     */
-    public static LoginService getInstance() {
-        return instance;
+    private final List<K> deletableUsers = new ArrayList<>();
+    private final Map<String, String> connectionCodes = new HashMap<>();
+    public LoginService(Plugin plugin,Guild guild, @Nullable String roleName){
+        this(plugin,guild, new File(plugin.getDataFolder(), "login.yaml"),roleName);
+    }
+    public LoginService(Plugin plugin,Guild guild, File file,@Nullable String roleName){
+        this.jda = guild.getJDA();
+        this.guild = guild;
+        this.plugin = plugin;
+        this.file = file;
+        try {
+            initialize();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if(roleName != null){
+            this.roleName = roleName;
+            initializeRole();
+        }
     }
 
-    /**
-     * Initialize the class.
-     *
-     * @param plugin the Main Plugin Class
-     * @param jda the JDA used
-     */
-    @Override
-    public void initialize(Plugin plugin, JDA jda,Guild g) throws IOException {
-        initialize(plugin, new File(plugin.getDataFolder(), "login.yaml"), jda, guild);
-    }
-
-
-    /**
-     * Initialize the class.
-     *
-     * @param plugin the Main Plugin Class
-     * @param jd the JDA used
-     * @param g the guild used
-     */
-    @Override
-    public void initialize(Plugin plugin, File file,JDA jd, Guild g) throws IOException {
-        jda = jd;
-        guild = g;
-        fileName = file.getPath();
+    public void initialize() throws IOException {
         if(!file.exists()){
             file.createNewFile();
-            plugin.saveResource(fileName, false);
+            plugin.saveResource(file.getName(), false);
         }
         path = plugin.getDataFolder().getPath();
         loadToCache();
@@ -72,13 +56,12 @@ public class LoginService implements IDataService{
 
     /**
      * Stock to the Cache all temporary data
-     * @throws IOException
      */
-    private static void loadToCache() throws IOException {
+    private void loadToCache() throws IOException {
         Yaml yaml = new Yaml();
         FileInputStream inputStream;
         try {
-            inputStream = new FileInputStream(path +"\\" + fileName);
+            inputStream = new FileInputStream(path +"\\" + file.getName());
             data = yaml.load(inputStream);
             inputStream.close();
         } catch (FileNotFoundException ignored) {
@@ -86,71 +69,23 @@ public class LoginService implements IDataService{
         if(data == null) data = new HashMap<>();
      }
 
-    /**
-     * Set a User ID to a Player with his UUID.
-     *
-     * @param user the user ID
-     * @param uuid the uuid of the Player
-     */
-    public static void setUserUUID(User user, UUID uuid){
-         data.computeIfAbsent(user.getId(), k -> String.valueOf(uuid));
+
+    public void setKey(K key, V value){
+         data.computeIfAbsent(key.getId(), k -> value);
      }
 
-    /**
-     * Get the String of the UUID of the Player synchronised with the targeted User.
-     *
-     * @param user the target user
-     * @return the String of UUID
-     */
-    public static String getStringUUIDOfUser(User user){
-        return data.get(user.getId());
+
+    public V getValue(K key){
+        return data.get(key);
     }
 
-    /**
-     * Get the UUID of the Player synchronised with the targeted User.
-     *
-     * @param user the target user
-     * @return the UUID of the Player
-     */
-    public static UUID getUUIDOfUser(User user){
-        return UUID.fromString(getStringUUIDOfUser(user));
-    }
-
-    /**
-     * Get the User ID with the String UUID of the targeted Player.
-     *
-     * @param uuid the String UUID of the targeted Player
-     * @return the discord User ID
-     */
-    public static String getUserWithUUID(String uuid){
+    public String getStringKeyWithValue(V value){
         for (String i : data.keySet()) {
-            if(Objects.equals(data.get(i), uuid)) return i;
+            if(Objects.equals(data.get(i), value)) return i;
         }
         return null;
     }
 
-    /**
-     * Get the User ID with the UUID of the targeted Player.
-     *
-     * @param uuid the UUID of the targeted Player
-     * @return the discord User ID
-     */
-    public static String getUserWithUUID(UUID uuid){
-        return getUserWithUUID(String.valueOf(uuid));
-    }
-
-    /**
-     * Get the Long User ID with the UUID of the targeted Player.
-     *
-     * @param uuid the UUID of the targeted Player
-     * @return the discord User ID
-     */
-    public static long getLongUserWithUUID(UUID uuid){
-        for (String i : data.keySet()) {
-            if(data.get(i).equals(String.valueOf(uuid))) return Long.parseLong(i);
-        }
-        return 0;
-    }
 
     /**
      * Get the String Player UUID of the login code
@@ -158,18 +93,12 @@ public class LoginService implements IDataService{
      * @param code the code
      * @return the String UUID
      */
-    public static UUID getUUIDByCode(String code){
+    public String getValueByCode(String code){
         return connectionCodes.get(code);
     }
 
-    /**
-     * put the Code of the UUID from the cache
-     *
-     * @param code the code
-     * @param uuid the Player UUID
-     */
-    public static void putCodeForUUID(String code, UUID uuid){
-        connectionCodes.put(code, uuid);
+    public void putCodeForUUID(String code, K value){
+        connectionCodes.put(code, value.getId());
     }
 
     /**
@@ -177,7 +106,7 @@ public class LoginService implements IDataService{
      *
      * @param code the code
      */
-    public static void removeCodeForUUID(String code){
+    public void removeCodeForUUID(String code){
         connectionCodes.remove(code);
     }
 
@@ -186,7 +115,7 @@ public class LoginService implements IDataService{
      *
      * @return the String code
      */
-    public static String createRandomCode() {
+    public String createRandomCode() {
         StringBuilder sb = new StringBuilder();
         Random random = new Random();
         for (int i = 0; i < 12; i++) {
@@ -201,24 +130,12 @@ public class LoginService implements IDataService{
         return code;
     }
 
-    /**
-     * Get if the User is synchronised with a Player
-     *
-     * @param user the user
-     * @return if is Synchronised
-     */
-    public static boolean isSynchronised(User user) {
-        return getStringUUIDOfUser(user) != null;
+    public boolean isSynchronised(K key) {
+        return data.get(key.getId()) != null;
     }
 
-    /**
-     * Get if the Player is synchronised with a Discord Account
-     *
-     * @param player the player
-     * @return if is Synchronised
-     */
-    public static boolean isSynchronised(OfflinePlayer player) {
-        return getUserWithUUID(String.valueOf(player.getUniqueId())) != null;
+    public boolean isSynchronised(V value) {
+        return getStringKeyWithValue(value) != null;
     }
 
     /**
@@ -226,8 +143,8 @@ public class LoginService implements IDataService{
      *
      * @param user the targeted USer
      */
-    public static void removeUserUUID(String user){
-        data.remove(user);
+    public void removeUserUUID(K user){
+        data.remove(user.getId());
     }
 
     /**
@@ -235,9 +152,9 @@ public class LoginService implements IDataService{
      *
      * @param user the user
      */
-    public static void disconnectPlayer(String user){
+    public void disconnectPlayer(K user){
         removeUserUUID(user);
-        removeUserVerifiedRole(jda.getUserById(user));
+        removeUserVerifiedRole(jda.getUserById(user.getId()));
     }
 
     /**
@@ -245,18 +162,17 @@ public class LoginService implements IDataService{
      *
      * @return the int
      */
-    public static int getTotalConnections(){
+    public int getTotalConnections(){
         return data.size();
     }
 
     /**
      * Save the cache to a file
      */
-    @Override
     public void save(){
         try {
             Yaml yaml = new Yaml();
-            FileWriter writer = new FileWriter(path + "\\" + fileName);
+            FileWriter writer = new FileWriter(path + "\\" + file.getName());
             yaml.dump(data, writer);
             writer.close();
         } catch (IOException e) {
@@ -267,29 +183,19 @@ public class LoginService implements IDataService{
     /**
      * Remove the state of Deletable of a Player
      *
-     * @param player the player
+     * @param user the user
      */
-    public static void removeDeleteable(OfflinePlayer player){
-        deletableUsers.remove(player.getUniqueId());
+    public void removeDeleteable(K user){
+        deletableUsers.remove(user);
     }
 
-    /**
-     * Get the Deletable state of a Player
-     *
-     * @param player the player
-     * @return the boolean
-     */
-    public static boolean isDeleteable(OfflinePlayer player) {
-        return deletableUsers.contains(player.getUniqueId());
+    public boolean isDeleteable(K user) {
+        return deletableUsers.contains(user);
     }
 
-    /**
-     * Set the state of Player has Deletable
-     *
-     * @param player the player
-     */
-    public static void setDeleteable(OfflinePlayer player){
-        deletableUsers.add(player.getUniqueId());
+
+    public void setDeleteable(K user){
+        deletableUsers.add(user);
     }
 
     /**
@@ -297,7 +203,7 @@ public class LoginService implements IDataService{
      *
      * @return Synchronised Players Collection
      */
-    public static Collection<String> getPlayers() {
+    public Collection<V> getPlayers() {
         return data.values();
     }
 
@@ -306,31 +212,32 @@ public class LoginService implements IDataService{
      *
      * @return Synchronised Users Set
      */
-    public static Set<String> getUsers() {
+    public Set<String> getUsers() {
         return data.keySet();
     }
+
+
 
     /**
      * The Verified Role name.
      */
-    static String roleName = "Verified";
+    String roleName;
     /**
      * The Verified Role.
      */
-    static Role role;
+    Role role;
 
     /**
      * Initialize role cache and Handlers.
      *
      */
-    public static void initializeRole(){
+    private void initializeRole(){
         List<Role> roles = guild.getRoles().stream().filter(i -> i.getName().equals(roleName)).toList();
         if (roles.size() == 0){
             RoleAction roleAction = guild.createRole();
             role = roleAction.setName(roleName).setMentionable(false).complete();
         } else role = guild.getRolesByName(roleName,true).get(0);
         loadPlayersRoles();
-
     }
 
     /**
@@ -338,7 +245,7 @@ public class LoginService implements IDataService{
      *
      * @return the role
      */
-    public static Role getRole(){
+    public Role getRole(){
         return role;
     }
 
@@ -347,8 +254,8 @@ public class LoginService implements IDataService{
      *
      * @param player the player
      */
-    public static void addPlayerVerifiedRole(Player player){
-        User user = jda.getUserById(getUserWithUUID(player.getUniqueId()));
+    public void addPlayerVerifiedRole(V player){
+        User user = jda.getUserById(getStringKeyWithValue(player));
         if(user == null) return;
         addUserVerifiedRole(user);
     }
@@ -358,8 +265,8 @@ public class LoginService implements IDataService{
      *
      * @param player the player
      */
-    public static void removePlayerVerifiedRole(Player player){
-        User user = jda.getUserById(getUserWithUUID(player.getUniqueId()));
+    public void removePlayerVerifiedRole(V player){
+        User user = jda.getUserById(getStringKeyWithValue(player));
         if(user == null) return;
         removeUserVerifiedRole(user);
     }
@@ -369,7 +276,7 @@ public class LoginService implements IDataService{
      *
      * @param user the user
      */
-    public static void addUserVerifiedRole(User user){
+    public void addUserVerifiedRole(User user){
         guild.addRoleToMember(user,role).queue();
     }
 
@@ -378,13 +285,13 @@ public class LoginService implements IDataService{
      *
      * @param user the user
      */
-    public static void removeUserVerifiedRole(User user){
+    public void removeUserVerifiedRole(User user){
         guild.removeRoleFromMember(user,role).queue();
     }
     /**
      * Check all Synchronised Account if they have the Verified Role
      */
-    private static void loadPlayersRoles(){
+    private void loadPlayersRoles(){
         getUsers().forEach(s -> {
             Member member = guild.getMemberById(s);
             if (member == null) return;
