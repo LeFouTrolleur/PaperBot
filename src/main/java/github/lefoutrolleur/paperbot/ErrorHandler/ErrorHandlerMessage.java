@@ -1,6 +1,5 @@
 package github.lefoutrolleur.paperbot.ErrorHandler;
 
-import lombok.Getter;
 import net.dv8tion.jda.api.exceptions.ErrorHandler;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.kyori.adventure.audience.Audience;
@@ -12,9 +11,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class ErrorHandlerMessage {
-
-
-
     private final Lang lang;
 
     final Audience audience;
