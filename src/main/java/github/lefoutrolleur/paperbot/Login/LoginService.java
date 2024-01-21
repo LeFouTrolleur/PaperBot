@@ -1,22 +1,22 @@
 package github.lefoutrolleur.paperbot.Login;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.requests.restaction.RoleAction;
-import net.kyori.adventure.audience.Audience;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
-import java.util.*;
 
-/**
- * The type Login manager.
- */
-public class LoginService<K extends ISnowflake,V extends OfflinePlayer>{
+public class LoginService<K extends ISnowflake, V extends OfflinePlayer> {
 
     private final Guild guild;
     private String path;
@@ -26,11 +26,13 @@ public class LoginService<K extends ISnowflake,V extends OfflinePlayer>{
     private final File file;
 
     private final List<K> deletableUsers = new ArrayList<>();
-    private final Map<String, String> connectionCodes = new HashMap<>();
-    public LoginService(Plugin plugin,Guild guild, @Nullable String roleName){
-        this(plugin,guild, new File(plugin.getDataFolder(), "login.yaml"),roleName);
+    private final ConcurrentHashMap<String, String> connectionCodes = new ConcurrentHashMap<>();
+
+    public LoginService(Plugin plugin, Guild guild, @Nullable String roleName) {
+        this(plugin, guild, new File(plugin.getDataFolder(), "login.yaml"), roleName);
     }
-    public LoginService(Plugin plugin,Guild guild, File file,@Nullable String roleName){
+
+    public LoginService(Plugin plugin, Guild guild, File file, @Nullable String roleName) {
         this.jda = guild.getJDA();
         this.guild = guild;
         this.plugin = plugin;
@@ -38,16 +40,19 @@ public class LoginService<K extends ISnowflake,V extends OfflinePlayer>{
         try {
             initialize();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // Log the error
+            e.printStackTrace();
+            // Handle the error gracefully
+            // ...
         }
-        if(roleName != null){
+        if (roleName != null) {
             this.roleName = roleName;
             initializeRole();
         }
     }
 
     public void initialize() throws IOException {
-        if(!file.exists()){
+        if (!file.exists()) {
             file.createNewFile();
             plugin.saveResource(file.getName(), false);
         }
@@ -55,79 +60,57 @@ public class LoginService<K extends ISnowflake,V extends OfflinePlayer>{
         loadToCache();
     }
 
-    /**
-     * Stock to the Cache all temporary data
-     */
     private void loadToCache() throws IOException {
         Yaml yaml = new Yaml();
         FileInputStream inputStream;
         try {
-            inputStream = new FileInputStream(path +"\\" + file.getName());
+            inputStream = new FileInputStream(path + "\\" + file.getName());
             data = yaml.load(inputStream);
             inputStream.close();
         } catch (FileNotFoundException ignored) {
         }
-        if(data == null) data = new HashMap<>();
-     }
+        if (data == null) data = new HashMap<>();
+    }
 
+    public void setKey(K key, V value) {
+        data.computeIfAbsent(key.getId(), k -> value.getUniqueId().toString());
+    }
 
-    public void setKey(K key, V value){
-         data.computeIfAbsent(key.getId(), k -> value.getUniqueId().toString());
-     }
-
-
-    public String getValue(K key){
+    public String getValue(K key) {
         return data.get(key.getId());
     }
 
-    public String getStringKeyWithValue(V value){
+    public String getStringKeyWithValue(V value) {
         for (String i : data.keySet()) {
-            if(Objects.equals(data.get(i), value.getUniqueId().toString())) return i;
+            if (Objects.equals(data.get(i), value.getUniqueId().toString())) return i;
         }
         return null;
     }
 
-
-    /**
-     * Get the String Player UUID of the login code
-     *
-     * @param code the code
-     * @return the String UUID
-     */
-    public String getValueByCode(String code){
+    public String getValueByCode(String code) {
         return connectionCodes.get(code);
     }
 
-    public void putCodeForUUID(String code, K value){
+    public void putCodeForUUID(String code, K value) {
         connectionCodes.put(code, value.getId());
     }
 
-    /**
-     * Remove the Code from the cache
-     *
-     * @param code the code
-     */
-    public void removeCodeForUUID(String code){
+    public void removeCodeForUUID(String code) {
         connectionCodes.remove(code);
     }
 
-    /**
-     * Create a String new random code
-     *
-     * @return the String code
-     */
     public String createRandomCode() {
         StringBuilder sb = new StringBuilder();
-        Random random = new Random();
-        for (int i = 0; i < 12; i++) {
-            if (i > 0 && i % 4 == 0) {
-                sb.append("-");
-            }
-            int randomNumber = random.nextInt(10);
-            sb.append(randomNumber);
-        }
+        new Random().ints(0, 10)
+                .limit(12)
+                .forEach(randomNumber -> {
+                    if (sb.length() > 0 && sb.length() % 4 == 0) {
+                        sb.append("-");
+                    }
+                    sb.append(randomNumber);
+                });
         String code = sb.toString();
-        if(connectionCodes.get(sb.toString()) != null) return createRandomCode();
+        if (connectionCodes.get(sb.toString()) != null) return createRandomCode();
         return code;
     }
 
@@ -139,54 +122,30 @@ public class LoginService<K extends ISnowflake,V extends OfflinePlayer>{
         return getStringKeyWithValue(value) != null;
     }
 
-    /**
-     * Remove the User and the Player UUID of the User from the data/cache
-     *
-     * @param user the targeted USer
-     */
-    public void removeUserUUID(K user){
+    public void removeUserUUID(K user) {
         data.remove(user.getId());
     }
 
-    /**
-     * UnSynchronise the User
-     *
-     * @param user the user
-     */
-    public void disconnectPlayer(K user){
+    public void disconnectPlayer(K user) {
         removeUserUUID(user);
         removeUserVerifiedRole(jda.getUserById(user.getId()));
     }
 
-    /**
-     * Get Total synchronised account
-     *
-     * @return the int
-     */
-    public int getTotalConnections(){
+    public int getTotalConnections() {
         return data.size();
     }
 
-    /**
-     * Save the cache to a file
-     */
-    public void save(){
+    public void save() {
         try {
+            Path filePath = Paths.get(path, file.getName());
             Yaml yaml = new Yaml();
-            FileWriter writer = new FileWriter(path + "\\" + file.getName());
-            yaml.dump(data, writer);
-            writer.close();
+            Files.write(filePath, yaml.dump(data).getBytes());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    /**
-     * Remove the state of Deletable of a Player
-     *
-     * @param user the user
-     */
-    public void removeDeleteable(K user){
+    public void removeDeleteable(K user) {
         deletableUsers.remove(user);
     }
 
@@ -194,109 +153,59 @@ public class LoginService<K extends ISnowflake,V extends OfflinePlayer>{
         return deletableUsers.contains(user);
     }
 
-
-    public void setDeleteable(K user){
+    public void setDeleteable(K user) {
         deletableUsers.add(user);
     }
 
-    /**
-     * Gets all synchronised Players
-     *
-     * @return Synchronised Players Collection
-     */
     public Collection<String> getPlayers() {
         return data.values();
     }
 
-    /**
-     * Gets all synchronised Users
-     *
-     * @return Synchronised Users Set
-     */
     public Set<String> getUsers() {
         return data.keySet();
     }
 
-
-
-    /**
-     * The Verified Role name.
-     */
     String roleName;
-    /**
-     * The Verified Role.
-     */
     Role role;
 
-    /**
-     * Initialize role cache and Handlers.
-     *
-     */
-    private void initializeRole(){
+    private void initializeRole() {
         List<Role> roles = guild.getRoles().stream().filter(i -> i.getName().equals(roleName)).toList();
-        if (roles.size() == 0){
+        if (roles.size() == 0) {
             RoleAction roleAction = guild.createRole();
             role = roleAction.setName(roleName).setMentionable(false).complete();
-        } else role = guild.getRolesByName(roleName,true).get(0);
+        } else role = guild.getRolesByName(roleName, true).get(0);
         loadPlayersRoles();
     }
 
-    /**
-     * Get the Verified role
-     *
-     * @return the role
-     */
-    public Role getRole(){
+    public Role getRole() {
         return role;
     }
 
-    /**
-     * Add of a Player, the Verified Role of his Discord Account
-     *
-     * @param player the player
-     */
-    public void addPlayerVerifiedRole(V player){
+    public void addPlayerVerifiedRole(V player) {
         User user = jda.getUserById(getStringKeyWithValue(player));
-        if(user == null) return;
+        if (user == null) return;
         addUserVerifiedRole(user);
     }
 
-    /**
-     * Remove of a Player, the Verified Role of his Discord Account
-     *
-     * @param player the player
-     */
-    public void removePlayerVerifiedRole(V player){
+    public void removePlayerVerifiedRole(V player) {
         User user = jda.getUserById(getStringKeyWithValue(player));
-        if(user == null) return;
+        if (user == null) return;
         removeUserVerifiedRole(user);
     }
 
-    /**
-     * Add of a User the Verified Role
-     *
-     * @param user the user
-     */
-    public void addUserVerifiedRole(User user){
-        guild.addRoleToMember(user,role).queue();
+    public void addUserVerifiedRole(User user) {
+        guild.addRoleToMember(user, role).queue();
     }
 
-    /**
-     * Remove of a User the Verified Role
-     *
-     * @param user the user
-     */
-    public void removeUserVerifiedRole(User user){
-        guild.removeRoleFromMember(user,role).queue();
+    public void removeUserVerifiedRole(User user) {
+        guild.removeRoleFromMember(user, role).queue();
     }
-    /**
-     * Check all Synchronised Account if they have the Verified Role
-     */
-    private void loadPlayersRoles(){
+
+    private void loadPlayersRoles() {
         getUsers().forEach(s -> {
             Member member = guild.getMemberById(s);
             if (member == null) return;
-            if(!member.getRoles().contains(role)){
+            if (!member.getRoles().contains(role)) {
                 guild.addRoleToMember(member, role).queue();
             }
         });
