@@ -115,7 +115,6 @@ public class ErrorHandlerMessage {
         FR_SCHEDULED_EVENT("Événement programmé inconnu"),
         FR_SCHEDULED_EVENT_USER("Utilisateur inconnu de l'événement programmé"),
         FR_BOTS_NOT_ALLOWED("Les robots ne peuvent pas utiliser ce point d'accès"),
-
         FR_ONLY_BOTS_ALLOWED("Seuls les robots peuvent utiliser ce point de terminaison"),
         FR_EXPLICIT_CONTENT_CANNOT_SEND_TO_RECIPIENT("Le contenu explicite ne peut pas être envoyé au(x) destinataire(s) souhaité(s)"),
         FR_NOT_AUTHORIZED_PERFORM_ACTION("Vous n'êtes pas autorisé à effectuer cette action sur cette application"),

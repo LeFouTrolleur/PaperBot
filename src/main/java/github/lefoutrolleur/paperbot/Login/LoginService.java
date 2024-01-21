@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.requests.restaction.RoleAction;
 import net.kyori.adventure.audience.Audience;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
@@ -15,11 +16,11 @@ import java.util.*;
 /**
  * The type Login manager.
  */
-public class LoginService<K extends ISnowflake,V extends Audience>{
+public class LoginService<K extends ISnowflake,V extends OfflinePlayer>{
 
     private final Guild guild;
     private String path;
-    private Map<String, V> data = new HashMap<>();
+    private Map<String, String> data = new HashMap<>();
     private final JDA jda;
     private final Plugin plugin;
     private final File file;
@@ -71,17 +72,17 @@ public class LoginService<K extends ISnowflake,V extends Audience>{
 
 
     public void setKey(K key, V value){
-         data.computeIfAbsent(key.getId(), k -> value);
+         data.computeIfAbsent(key.getId(), k -> value.getUniqueId().toString());
      }
 
 
-    public V getValue(K key){
-        return data.get(key);
+    public String getValue(K key){
+        return data.get(key.getId());
     }
 
     public String getStringKeyWithValue(V value){
         for (String i : data.keySet()) {
-            if(Objects.equals(data.get(i), value)) return i;
+            if(Objects.equals(data.get(i), value.getUniqueId().toString())) return i;
         }
         return null;
     }
@@ -203,7 +204,7 @@ public class LoginService<K extends ISnowflake,V extends Audience>{
      *
      * @return Synchronised Players Collection
      */
-    public Collection<V> getPlayers() {
+    public Collection<String> getPlayers() {
         return data.values();
     }
 
